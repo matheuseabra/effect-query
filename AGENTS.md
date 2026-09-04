@@ -2,7 +2,9 @@
 
 ## Project Structure & Module Organization
 
-This repository is currently specification-first. The product direction and public API examples live in [`docs/spec.md`](docs/spec.md). There is not yet an implementation, test suite, asset directory, or package manifest.
+The product direction and public API examples live in [`docs/spec.md`](docs/spec.md);
+implementation decisions live in [`docs/architecture.md`](docs/architecture.md).
+The implementation lives in `src/` with tests in `test/`.
 
 As code is added, keep the core Effect-native library separate from integrations:
 
@@ -15,7 +17,12 @@ Preserve the boundaries described in the spec: typed errors and requirements sho
 
 ## Build, Test, and Development Commands
 
-No build or test scripts are configured yet. Once a package manager and toolchain are introduced, record the canonical commands here (for example, `pnpm build`, `pnpm test`, and `pnpm lint`). During documentation-only changes, use `git diff --check` to catch whitespace errors and review the rendered Markdown.
+- `pnpm install` — install dependencies.
+- `pnpm check` — typecheck, lint, test (with enforced coverage thresholds), and build.
+- `pnpm test:watch` — rerun tests on change (no coverage).
+- `pnpm build` — emit `dist/` via `tsconfig.build.json`.
+
+During documentation-only changes, use `git diff --check` to catch whitespace errors and review the rendered Markdown.
 
 ## Coding Style & Naming Conventions
 
@@ -23,7 +30,7 @@ Use TypeScript with strict typing and immutable data by default. Follow the form
 
 ## Testing Guidelines
 
-Tests are not present yet. Add tests alongside each core behavior, including interrupted requests, concurrent deduplication, stale and cache expiration, typed failures, invalidation, and mutation success handling. Name tests after observable behavior (for example, `dedupes concurrent fetches`). Include React adapter tests separately when that package is introduced.
+Tests live in `test/` and exercise the public seam (`Query`, `Mutation`, `queryLayer`) rather than private maps. Keep coverage at the enforced thresholds in `vitest.config.ts` (100% lines/functions). Cover each core behavior, including interrupted requests, concurrent deduplication, stale and cache expiration, typed failures, invalidation, and mutation success handling. Name tests after observable behavior (for example, `dedupes concurrent fetches`). Include React adapter tests separately when that package is introduced.
 
 ## Commit & Pull Request Guidelines
 

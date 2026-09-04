@@ -12,7 +12,7 @@ Effect Query is a small, UI-agnostic cache module. Its external seam is the `Que
 
 ### QueryService implementation
 
-`queryLayer()` creates an isolated in-memory `Map` keyed by a JSON representation of the readonly key tuple. Each entry stores the last successful value, its timestamp, timing policy, and a shared in-flight Effect. `Effect.cached` provides structured deduplication: concurrent callers await one execution and preserve the caller’s typed error and requirements.
+`queryLayer()` creates an isolated in-memory `Map` keyed by a JSON representation of the readonly key tuple. Each entry stores the last successful value, its timestamp, timing policy, and the current in-flight joiner. Deduplication is an explicit Deferred-based single flight: the first caller (winner) runs the request in its own fiber so interruption cancels the underlying effect, while concurrent callers (joiners) await the same Deferred, so interrupting a joiner only cancels its own wait. The winner completes the Deferred with the full `Exit`, preserving typed errors and requirements for every waiter.
 
 The service applies this decision sequence:
 
@@ -36,4 +36,4 @@ Failures are never cached as data. A failed revalidation leaves the previous suc
 
 ## Verification surface
 
-The tests exercise the public seam rather than private maps: fresh caching, in-flight deduplication, retries, manual cache operations, and mutation success handling.
+The tests exercise the public seam rather than private maps: fresh caching, in-flight deduplication, key isolation, retries and exhaustion, manual cache operations, stale-while-revalidate, cache-time garbage collection, failure visibility, winner/joiner interruption, and mutation success and failure handling. `pnpm test` enforces 100% line/function coverage thresholds (see `vitest.config.ts`).

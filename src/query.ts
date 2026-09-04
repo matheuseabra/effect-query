@@ -1,4 +1,4 @@
-import { Context, Duration, Effect, Layer, Option, Schedule } from "effect"
+import { Context, Deferred, Duration, Effect, Exit, Layer, Option, Schedule } from "effect"
 
 export type QueryKey = readonly unknown[]
 export type QueryArgs = readonly unknown[]
@@ -75,19 +75,34 @@ const withRetry = <A, E, R>(effect: Effect.Effect<A, E, R>, policy: RetryPolicy<
 	return Effect.retry(effect, policy)
 }
 
-const makeSharedEffect = <A, E, R>(
-	effect: Effect.Effect<A, E, R>,
-	policy: RetryPolicy<E> | undefined,
-	onSuccess: (value: A) => void,
-	onFinished: () => void
-): Effect.Effect<Effect.Effect<Effect.Effect<A, E, R>>> =>
-	Effect.cached(
-		Effect.cached(
-			withRetry(effect, policy).pipe(
-				Effect.tap((value) => Effect.sync(() => onSuccess(value))),
-				Effect.ensuring(Effect.sync(onFinished))
-			)
-		)
+// Single-flight execution for one cache key. The first caller (winner) runs
+// the effect in its own fiber, so interrupting the winner cancels the
+// underlying request. Concurrent callers (joiners) await a Deferred instead,
+// so interrupting a joiner only cancels its own wait. Failures complete the
+// Deferred without caching, letting the next fetch retry from scratch.
+const runFresh = <A, E, R>(
+	entry: CacheEntry,
+	execute: Effect.Effect<A, E, R>,
+	policy: RetryPolicy<E> | undefined
+): Effect.Effect<A, E, R> =>
+	Effect.uninterruptibleMask((restore) =>
+		Effect.gen(function* () {
+			const existing = entry.inFlight
+			if (existing !== undefined) {
+				return yield* restore(existing as Effect.Effect<A, E, R>)
+			}
+			const deferred = yield* Deferred.make<A, E>()
+			entry.inFlight = Deferred.await(deferred)
+			const exit = yield* restore(Effect.exit(withRetry(execute, policy)))
+			if (Exit.isSuccess(exit)) {
+				entry.hasValue = true
+				entry.value = exit.value
+				entry.updatedAt = Date.now()
+			}
+			entry.inFlight = undefined
+			yield* Deferred.done(deferred, exit)
+			return yield* restore(exit)
+		})
 	)
 
 const makeService = (): QueryService => {
@@ -134,39 +149,20 @@ const makeService = (): QueryService => {
 			entry.cacheTimeMs = toMillis(query.cacheTime, DEFAULT_CACHE_TIME)
 
 			if (isFresh(entry, now)) return entry.value as A
-			const shared = ensureInFlight(entry, query, args)
-			const factory = yield* shared
-			const initialized = yield* factory
-			if (entry.hasValue && !isFresh(entry, now)) {
-				yield* Effect.forkDaemon(initialized)
+			if (entry.hasValue) {
+				yield* Effect.forkDaemon(
+					Effect.ignore(runFresh(entry, query.execute(...args), query.retry))
+				)
 				return entry.value as A
 			}
-			return yield* initialized
+			return yield* runFresh(entry, query.execute(...args), query.retry)
 		})
-
-	const ensureInFlight = <Args extends QueryArgs, A, E, R, Key extends QueryKey>(
-		entry: CacheEntry,
-		query: QueryDefinition<Args, A, E, R, Key>,
-		args: Args
-	): Effect.Effect<Effect.Effect<Effect.Effect<A, E, R>>> => {
-		if (entry.inFlight !== undefined) return entry.inFlight as Effect.Effect<Effect.Effect<Effect.Effect<A, E, R>>>
-		const shared = makeSharedEffect(query.execute(...args), query.retry, (value) => {
-			entry.hasValue = true
-			entry.value = value
-			entry.updatedAt = Date.now()
-		}, () => {
-			entry.inFlight = undefined
-		})
-		entry.inFlight = shared as Effect.Effect<unknown, unknown, unknown>
-		return shared
-	}
 
 	return {
 		fetch,
 		invalidate: (key) =>
 			Effect.sync(() => {
-				const entry = entries.get(keyHash(key))
-				if (entry !== undefined) entry.updatedAt = 0
+				entries.delete(keyHash(key))
 			}),
 		setData: (key, value) =>
 			Effect.sync(() => {

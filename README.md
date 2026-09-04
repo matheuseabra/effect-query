@@ -1,5 +1,9 @@
 # effect-query
 
+[![npm version](https://img.shields.io/npm/v/effect-query.svg)](https://www.npmjs.com/package/effect-query)
+[![CI](https://github.com/matheuseabra/effect-query/actions/workflows/ci.yml/badge.svg)](https://github.com/matheuseabra/effect-query/actions/workflows/ci.yml)
+[![license](https://img.shields.io/github/license/matheuseabra/effect-query.svg)](./LICENSE)
+
 Typed, interruptible query caching for [Effect](https://effect.website/).
 
 The first version provides a UI-agnostic `QueryService` with structural keys,
@@ -20,6 +24,15 @@ const program = Query.fetch(user, "123").pipe(
   Effect.provide(queryLayer())
 )
 ```
+
+## Install
+
+```sh
+pnpm add effect-query
+```
+
+Requires Node 18 or later and `effect` 3 as a peer-style runtime dependency
+(installed automatically as a direct dependency).
 
 ## Development
 
