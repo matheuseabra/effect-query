@@ -18,9 +18,11 @@ jobs:
           version: 10
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          # Node 24 ships npm 11.5.1+, required for OIDC trusted publishing.
+          node-version: 24
           cache: pnpm
           registry-url: "https://registry.npmjs.org"
       - run: pnpm install --frozen-lockfile
       - run: pnpm check
-      - run: pnpm publish --no-git-checks
+      # npm CLI (not pnpm) performs the OIDC token exchange for publishing.
+      - run: npm publish --no-git-checks
