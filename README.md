@@ -4,11 +4,39 @@
 [![CI](https://github.com/matheuseabra/effect-query/actions/workflows/ci.yml/badge.svg)](https://github.com/matheuseabra/effect-query/actions/workflows/ci.yml)
 [![license](https://img.shields.io/github/license/matheuseabra/effect-query.svg)](./LICENSE)
 
-Typed, interruptible query caching for [Effect](https://effect.website/).
+Typed, interruptible query caching for [Effect](https://effect.website/) —
+a TanStack Query-style cache that is plain Effect all the way down, with no
+React (or any UI) dependency.
 
-The first version provides a UI-agnostic `QueryService` with structural keys,
-fresh/stale cache handling, in-flight deduplication, typed retries, manual
-invalidation, and mutation success hooks.
+## Why
+
+Client caches like TanStack Query, SWR, and Apollo own their own runtime:
+framework-coupled lifecycles, untyped errors, and cancellation and
+deduplication rules you cannot compose. When your program is already Effect,
+the cache should be Effect too — a query should just be an `Effect` with
+typed success, typed failure, and interruption that cancels the request.
+
+`effect-query` is that cache: one UI-agnostic `QueryService` layer, queries
+as data plus typed `Effect` constructors, and cache semantics (freshness,
+retention, deduplication, retries) expressed through fibers instead of a
+parallel runtime.
+
+## Features
+
+- UI-agnostic core — works in any Effect program; UI bindings stay out of core
+- Structural readonly-tuple keys shared by reads, writes, and invalidation
+- Fresh/stale caching with stale-while-revalidate and background refresh
+- Single-flight in-flight deduplication across concurrent fetches
+- Fully typed success, error, and requirements channels via Effect
+- Retries with Effect `Schedule`s; failures are never cached
+- Interruptible fetches: cancelling the winner cancels the request, cancelling
+  a joiner only cancels its own wait
+- Manual `getData` / `setData` / `invalidate` over the same key space
+- Mutations with `QueryService`-backed `onSuccess` hooks
+- Lazy `cacheTime` garbage collection with no background timers
+- Strict TypeScript with 100% line test coverage
+
+## Quick start
 
 ```ts
 import { Effect } from "effect"
@@ -153,12 +181,25 @@ const result = await Effect.runPromiseExit(
 // result is Exit.fail(new UserNotFound("missing"))
 ```
 
-## Development
+## Contributing
+
+Contributions are welcome — bug reports, real-world use cases, docs, and pull
+requests.
 
 ```sh
 pnpm install
 pnpm check
 ```
 
+`pnpm check` runs typecheck, lint, tests with enforced coverage thresholds,
+and build. Please keep 100% line coverage, name tests after observable
+behavior, and use concise imperative commit subjects (`feat:`, `fix:`,
+`test:`, `docs:`). For larger changes, open an issue first so the design can
+be discussed before code.
+
 See [`docs/spec.md`](docs/spec.md) for the product contract and
 [`docs/architecture.md`](docs/architecture.md) for implementation decisions.
+
+## License
+
+MIT — see [LICENSE](./LICENSE).
