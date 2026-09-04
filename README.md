@@ -1,6 +1,6 @@
 # effect-query
 
-[![npm version](https://img.shields.io/npm/v/effect-query.svg)](https://www.npmjs.com/package/effect-query)
+[![npm version](https://img.shields.io/npm/v/@matheuseabra%2Feffect-query.svg)](https://www.npmjs.com/package/@matheuseabra/effect-query)
 [![CI](https://github.com/matheuseabra/effect-query/actions/workflows/ci.yml/badge.svg)](https://github.com/matheuseabra/effect-query/actions/workflows/ci.yml)
 [![license](https://img.shields.io/github/license/matheuseabra/effect-query.svg)](./LICENSE)
 
@@ -28,7 +28,7 @@ const program = Query.fetch(user, "123").pipe(
 ## Install
 
 ```sh
-pnpm add effect-query
+pnpm add @matheuseabra/effect-query
 ```
 
 Requires Node 18 or later and `effect` 3 as a peer-style runtime dependency

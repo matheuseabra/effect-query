@@ -1,5 +1,5 @@
 {
-	"name": "effect-query",
+	"name": "@matheuseabra/effect-query",
 	"version": "0.1.0-alpha.0",
 	"description": "Typed, interruptible query caching for Effect",
 	"license": "MIT",
