@@ -1,0 +1,34 @@
+{
+	"name": "effect-query",
+	"version": "0.1.0",
+	"description": "Typed, interruptible query caching for Effect",
+	"license": "MIT",
+	"type": "module",
+	"main": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js"
+		}
+	},
+	"files": ["dist", "README.md", "LICENSE"],
+	"scripts": {
+		"build": "tsc -p tsconfig.build.json",
+		"lint": "oxlint src test",
+		"test": "vitest run",
+		"test:watch": "vitest",
+		"typecheck": "tsc --noEmit",
+		"check": "pnpm typecheck && pnpm lint && pnpm test && pnpm build"
+	},
+	"dependencies": {
+		"effect": "^3.22.1"
+	},
+	"devDependencies": {
+		"@types/node": "^26.4.1",
+		"oxlint": "^1.81.0",
+		"tsx": "^4.23.13",
+		"typescript": "^7.0.2",
+		"vitest": "^5.0.0"
+	}
+}
