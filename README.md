@@ -4,7 +4,7 @@
 [![CI](https://github.com/matheuseabra/effect-query/actions/workflows/ci.yml/badge.svg)](https://github.com/matheuseabra/effect-query/actions/workflows/ci.yml)
 [![license](https://img.shields.io/github/license/matheuseabra/effect-query.svg)](./LICENSE)
 
-Typed, interruptible query caching for [Effect](https://effect.website/) —
+Typed, interruptible query caching for [Effect](https://effect.website/) is
 a TanStack Query-style cache that is plain Effect all the way down, with no
 React (or any UI) dependency.
 
