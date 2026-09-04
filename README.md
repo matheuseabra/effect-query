@@ -1,6 +1,6 @@
 # effect-query
 
-[![npm version](https://img.shields.io/npm/v/@matheuseabra%2Feffect-query.svg)](https://www.npmjs.com/package/@matheuseabra/effect-query)
+[![version](https://img.shields.io/badge/version-0.1.0--alpha.0-blue)](https://www.npmjs.com/package/@matheuseabra/effect-query)
 [![CI](https://github.com/matheuseabra/effect-query/actions/workflows/ci.yml/badge.svg)](https://github.com/matheuseabra/effect-query/actions/workflows/ci.yml)
 [![license](https://img.shields.io/github/license/matheuseabra/effect-query.svg)](./LICENSE)
 
