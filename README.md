@@ -12,7 +12,7 @@ invalidation, and mutation success hooks.
 
 ```ts
 import { Effect } from "effect"
-import { Query, queryLayer } from "effect-query"
+import { Query, queryLayer } from "@matheuseabra/effect-query"
 
 const user = Query.make({
   key: (id: string) => ["user", id] as const,
@@ -28,11 +28,130 @@ const program = Query.fetch(user, "123").pipe(
 ## Install
 
 ```sh
-pnpm add @matheuseabra/effect-query
+bun add @matheuseabra/effect-query
 ```
 
-Requires Node 18 or later and `effect` 3 as a peer-style runtime dependency
+Requires Bun (or Node 18 and later) and `effect` 3 as a runtime dependency
 (installed automatically as a direct dependency).
+
+## Usage
+
+### Define and fetch a query
+
+```ts
+import { Effect } from "effect"
+import { Query, queryLayer } from "@matheuseabra/effect-query"
+
+const userQuery = Query.make({
+  key: (id: string) => ["user", id] as const,
+  execute: (id: string) =>
+    Effect.tryPromise({
+      try: () => fetch(`/api/users/${id}`).then((res) => res.json()),
+      catch: () => new Error("request failed")
+    }),
+  staleTime: "30 seconds"
+})
+
+const program = Effect.gen(function* () {
+  const user = yield* Query.fetch(userQuery, "123")
+  return user
+}).pipe(Effect.provide(queryLayer()))
+```
+
+Keys are readonly tuples, so `["user", "123"]` built anywhere in the program
+addresses the same cache entry. Concurrent fetches for one key share a single
+in-flight request.
+
+### Freshness and retention
+
+```ts
+const postsQuery = Query.make({
+  key: () => ["posts"] as const,
+  execute: () => Effect.promise(() => fetch("/api/posts").then((res) => res.json())),
+  staleTime: "1 minute",
+  cacheTime: "10 minutes"
+})
+```
+
+While data is fresh, `fetch` returns the cached value without executing.
+Once stale, `fetch` returns the cached value immediately and revalidates in
+the background. Entries unused for longer than `cacheTime` are garbage
+collected.
+
+### Retries
+
+```ts
+import { Schedule } from "effect"
+
+const resilientQuery = Query.make({
+  key: () => ["status"] as const,
+  execute: () => Effect.promise(() => fetch("/api/status").then((res) => res.json())),
+  retry: { times: 3, schedule: Schedule.exponential("100 millis") }
+})
+```
+
+Failures are never cached: when retries are exhausted the typed error
+propagates to the caller and the next fetch starts over.
+
+### Manual cache access
+
+```ts
+import { Option } from "effect"
+
+const program = Effect.gen(function* () {
+  yield* Query.setData(["user", "123"], { id: "123", name: "Ada" })
+
+  const cached = yield* Query.getData<{ id: string; name: string }>(["user", "123"])
+  const name = Option.match(cached, {
+    onNone: () => "unknown",
+    onSome: (user) => user.name
+  })
+
+  yield* Query.invalidate(["user", "123"])
+  return name
+}).pipe(Effect.provide(queryLayer()))
+```
+
+### Mutations that refresh queries
+
+```ts
+import { Mutation } from "@matheuseabra/effect-query"
+
+const updateUser = Mutation.make({
+  execute: (id: string, name: string) =>
+    Effect.promise(() =>
+      fetch(`/api/users/${id}`, { method: "PATCH", body: JSON.stringify({ name }) }).then((res) =>
+        res.json()
+      )
+    ),
+  onSuccess: (user: { id: string }) => Query.invalidate(["user", user.id])
+})
+
+const program = Mutation.execute(updateUser, "123", "Ada").pipe(Effect.provide(queryLayer()))
+```
+
+The `onSuccess` hook runs with access to the `QueryService`, so a mutation can
+invalidate or seed exactly the keys it affects. If the mutation fails, the
+hook does not run and the typed error propagates.
+
+### Typed errors
+
+```ts
+class UserNotFound {
+  readonly _tag = "UserNotFound"
+  constructor(readonly id: string) {}
+}
+
+const strictQuery = Query.make({
+  key: (id: string) => ["user", id] as const,
+  execute: (id: string) => Effect.fail(new UserNotFound(id))
+})
+
+const result = await Effect.runPromiseExit(
+  Query.fetch(strictQuery, "missing").pipe(Effect.provide(queryLayer()))
+)
+// result is Exit.fail(new UserNotFound("missing"))
+```
 
 ## Development
 
