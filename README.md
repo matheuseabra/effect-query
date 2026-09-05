@@ -1,6 +1,6 @@
 # effect-query
 
-[![version](https://img.shields.io/badge/version-0.1.0--alpha.0-blue)](https://www.npmjs.com/package/@wthw7/effect-query)
+[![version](https://img.shields.io/badge/version-0.3.0--beta.0-blue)](https://www.npmjs.com/package/@wthw7/effect-query)
 [![CI](https://github.com/matheuseabra/effect-query/actions/workflows/ci.yml/badge.svg)](https://github.com/matheuseabra/effect-query/actions/workflows/ci.yml)
 [![license](https://img.shields.io/github/license/matheuseabra/effect-query.svg)](./LICENSE)
 
@@ -24,6 +24,8 @@ parallel runtime.
 ## Features
 
 - UI-agnostic core — works in any Effect program; UI bindings stay out of core
+- Optional [React adapter](./packages/react/README.md) with runtime-bound query
+  and mutation hooks, typed outcomes, and unmount cancellation
 - Structural readonly-tuple keys shared by reads, writes, and invalidation
 - Fresh/stale caching with stale-while-revalidate and background refresh
 - Single-flight in-flight deduplication across concurrent fetches

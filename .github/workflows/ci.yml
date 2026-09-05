@@ -24,4 +24,6 @@ jobs:
         if: always()
         with:
           name: coverage
-          path: coverage/
+          path: |
+            coverage/
+            packages/react/coverage/

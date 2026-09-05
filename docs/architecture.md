@@ -36,7 +36,7 @@ Failures are never cached as data. A failed revalidation leaves the previous suc
 - `notifyFocus` / `notifyReconnect` revalidate opted-in entries in background
   daemons; queries needing services beyond `QueryService` fail silently there
   without touching cached data.
-- React bindings, persistence, pagination, SSR hydration, and devtools remain
+- Persistence, pagination, SSR hydration, and devtools remain
   out of scope (see `docs/roadmap.md`).
 
 ## Interruption semantics per operation
@@ -55,5 +55,35 @@ Failures are never cached as data. A failed revalidation leaves the previous suc
   detaching the caller means caller interruption never cancels them.
 
 ## Verification surface
+
+### React adapter
+
+`packages/react` is a separate workspace package with a one-way dependency on
+core and React/Effect peer dependencies. `createQueryHooks` captures a supplied
+`Runtime<QueryService | R>` once; it does not own runtime disposal. This keeps
+injected application requirements checked at the hook boundary without erasing
+them through a React context. The application disposes its managed runtime after
+unmounting the React tree.
+
+Each query hook forks a core fetch after commit. A hashed key plus the stable
+definition determines request identity. Cleanup marks the observer inactive and
+interrupts its fiber. A new request awaits the previous fiber's finalizers before
+starting, so React StrictMode replay cannot join the request it just cancelled.
+Results carry their request identity to prevent displaying old-key data between
+render and effect setup. Causes preserve both typed errors and defects.
+
+Mutation hooks track concurrent fibers per definition and settle promises with
+typed `Exit` values. Cleanup disables that definition's callbacks and interrupts
+its outstanding fibers; late completions do not update inactive React state.
+
+The adapter delegates cache behavior and request ownership to core. In particular,
+cancelling the winning hook interrupts surviving joiners, and detached stale
+revalidation outlives hook cleanup. There is no reactive cache subscription in
+this phase: hooks display fetch snapshots, so background cache changes do not
+automatically rerender consumers. Core cache semantics and coverage gates are
+unchanged. React behavior tests run separately in jsdom, with fake timers for
+mount, key change, cleanup, StrictMode, errors, and concurrent mutations.
+
+### Core
 
 The tests exercise the public seam rather than private maps: fresh caching, in-flight deduplication, key isolation, custom hashers and typed hash failures, retries and exhaustion, manual cache operations, stale-while-revalidate, cache-time garbage collection, failure visibility, winner/joiner interruption, cancellation and slot reuse, prefetch warming, focus/reconnect triggers, and mutation success and failure handling. `pnpm test` enforces 100% line/function coverage thresholds (see `vitest.config.ts`).

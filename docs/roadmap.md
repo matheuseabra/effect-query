@@ -55,18 +55,23 @@ publish `0.2.0-beta.0` and verify the tarball as in Phase 0.
 
 Goal: prove the core is truly UI-agnostic with a first adapter.
 
-- [ ] New package (e.g. `effect-query-react`) depending on core, never the
+- [x] New package (`@wthw7/effect-query-react`) depending on core, never the
   reverse. React stays out of core `package.json`.
-- [ ] `useQuery(definition, ...args)` returning `{ data, error, isPending }`
+- [x] `useQuery(definition, ...args)` returning `{ data, error, isPending }`
   driven by Effect fibers, with unmount cancellation.
-- [ ] `useMutation(definition)` returning `{ mutate, isPending }`.
-- [ ] Adapter test suite with fake timers covering mount, key change,
+- [x] `useMutation(definition)` returning `{ mutate, isPending }`.
+- [x] Adapter test suite with fake timers covering mount, key change,
   unmount-cancel, and error states.
-- [ ] README section with framework example; core README links to it.
+- [x] README section with framework example; core README links to it.
 
 Quality gate: adapter tests green in CI, core coverage thresholds untouched,
 example app (or test harness) demonstrates mount → fetch → unmount-cancel,
 publish `0.3.0-beta.0` for both packages.
+
+Implementation is ready for review. Both manifests and the release workflow are
+prepared for `0.3.0-beta.0`; publishing and registry verification remain pending.
+The new adapter needs npm Trusted Publishing configuration before release. See
+its [README](../packages/react/README.md) for setup and fetch-snapshot limitations.
 
 ## Phase 3 — Advanced cache
 
