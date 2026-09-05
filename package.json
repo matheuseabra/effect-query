@@ -1,6 +1,6 @@
 {
 	"name": "@wthw7/effect-query",
-	"version": "0.1.0-alpha.0",
+	"version": "0.3.0-beta.0",
 	"description": "Typed, interruptible query caching for Effect",
 	"license": "MIT",
 	"author": "Matheus Seabra",
@@ -40,7 +40,7 @@
 		"test": "vitest run --coverage",
 		"test:watch": "vitest",
 		"typecheck": "tsc --noEmit",
-		"check": "pnpm typecheck && pnpm lint && pnpm test && pnpm build",
+		"check": "pnpm typecheck && pnpm lint && pnpm test && pnpm build && pnpm --filter @wthw7/effect-query-react check",
 		"prepublishOnly": "pnpm check"
 	},
 	"dependencies": {
