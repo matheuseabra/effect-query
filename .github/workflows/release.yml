@@ -28,4 +28,4 @@ jobs:
       # Prereleases publish under their own dist-tag so `latest` stays clean.
       - run: |
           TAG=$(node -p "/-/.test(require('./package.json').version) ? require('./package.json').version.split('-')[1].split('.')[0] : 'latest'")
-          npm publish --tag "$TAG" --no-git-checks
+          npm publish --provenance --tag "$TAG" --no-git-checks
