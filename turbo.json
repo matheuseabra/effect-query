@@ -1,0 +1,38 @@
+{
+  "$schema": "https://turborepo.com/schema.json",
+  "cacheDir": ".turbo/cache",
+  "globalDependencies": ["tsconfig.json", ".oxlintrc.json"],
+  "tasks": {
+    "build": {
+      "dependsOn": ["//#build"],
+      "outputs": ["dist/**"]
+    },
+    "typecheck": {
+      "dependsOn": ["//#build"],
+      "outputs": []
+    },
+    "lint": {
+      "outputs": []
+    },
+    "test": {
+      "dependsOn": ["//#build"],
+      "outputs": ["coverage/**"]
+    },
+    "//#build": {
+      "inputs": ["src/**", "tsconfig.json", "tsconfig.build.json"],
+      "outputs": ["dist/**"]
+    },
+    "//#typecheck": {
+      "inputs": ["src/**", "test/**", "tsconfig.json"],
+      "outputs": []
+    },
+    "//#lint": {
+      "inputs": ["src/**", "test/**"],
+      "outputs": []
+    },
+    "//#test": {
+      "inputs": ["src/**", "test/**", "vitest.config.ts", "tsconfig.json", "README.md"],
+      "outputs": ["coverage/**"]
+    }
+  }
+}

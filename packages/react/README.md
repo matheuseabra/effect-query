@@ -104,8 +104,11 @@ root.render(<User />)
 
 ## Development
 
-From the repository root, run `pnpm install` then `pnpm check`. The root builds
-core before typechecking and testing the adapter. The fake-timer harness in
+From the repository root, run `pnpm install` then `pnpm check`. Turborepo runs
+both packages' checks, builds core before the adapter's dependent tasks, and
+caches build and coverage artifacts. For the adapter suite alone, run
+`pnpm exec turbo run test --filter=@wthw7/effect-query-react` from the root;
+this also builds core when needed. The fake-timer harness in
 `test/query.test.tsx` proves mount → fetch → unmount cancellation, key changes,
 StrictMode replay, and shared-request behavior. Mutation tests cover concurrency,
 typed outcomes, cleanup, and core success handlers. Each package independently

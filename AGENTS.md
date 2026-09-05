@@ -19,8 +19,15 @@ Preserve the boundaries described in the spec: typed errors and requirements sho
 
 - `pnpm install` — install dependencies.
 - `pnpm check` — typecheck, lint, test (with enforced coverage thresholds), and build.
+- `pnpm check --force` — rerun all Turborepo tasks without reading cached results.
+- `pnpm exec turbo run build` — build core and the React adapter in dependency order.
 - `pnpm test:watch` — rerun tests on change (no coverage).
 - `pnpm build` — emit `dist/` via `tsconfig.build.json`.
+
+pnpm manages the workspace; Turborepo coordinates `pnpm check` across core at
+the root and `packages/react`. Core commands are registered root tasks in
+`turbo.json`; adapter build/typecheck/test depend on the core build. Keep task
+inputs and cached outputs accurate when adding files or configuration.
 
 During documentation-only changes, use `git diff --check` to catch whitespace errors and review the rendered Markdown.
 

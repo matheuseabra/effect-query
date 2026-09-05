@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   concurrent mutation tracking. Hooks expose fetch snapshots, not cache subscriptions.
 - Separate React behavior and compile-time tests, included in `pnpm check` and CI.
 - Workspace packaging and release support for both packages; core remains React-free.
+- Turborepo task orchestration and local/CI caching for builds, coverage tests,
+  typechecking, and linting, with pnpm retained as the workspace package manager.
 - Phase 1 core additions since alpha: custom hashers and `KeyHashError`, prefetch,
   cancel, and focus/reconnect notifications.
 

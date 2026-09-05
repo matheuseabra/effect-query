@@ -58,6 +58,16 @@ Failures are never cached as data. A failed revalidation leaves the previous suc
 
 ### React adapter
 
+pnpm links the workspace packages, while Turborepo orchestrates `pnpm check`.
+Core remains the root package: its build, lint, test, and typecheck commands are
+registered explicitly as `//#...` root tasks. Adapter build, typecheck, and test
+tasks depend on `//#build`, because core's exported runtime and declarations
+come from `dist/`. Root tasks have scoped inputs so adapter-only changes do not
+invalidate core results. Shared TypeScript/lint configs participate in global
+cache hashes; successful builds and coverage reports are cached as outputs.
+The explicit `.turbo/cache` location keeps worktree caches isolated, and CI
+persists that directory between runs. No publishing command is cached.
+
 `packages/react` is a separate workspace package with a one-way dependency on
 core and React/Effect peer dependencies. `createQueryHooks` captures a supplied
 `Runtime<QueryService | R>` once; it does not own runtime disposal. This keeps
