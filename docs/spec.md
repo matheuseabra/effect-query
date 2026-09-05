@@ -95,16 +95,36 @@ const updateUser = Mutation.make({
 - **Deduping**: Identical in-flight keys share the same fiber
 - **Stale-while-revalidate**: Returns cached data immediately, refetches in background when stale
 - **Typed everything**: Success, error, and requirements flow through Effect
-- **No React binding required**: Core is pure Effect; a React adapter is future work
+- **No React binding required**: Core is pure Effect; React hooks live in a separate optional package
 
-## React Adapter (future)
+## React Adapter
 
 ```ts
+const { useQuery, useMutation } = createQueryHooks(await managed.runtime())
 const { data, error, isPending } = useQuery(userQuery, "123")
 const { mutate } = useMutation(updateUser)
 ```
 
-The adapter is not included in v0.1. A future package may build on Effect fibers and React concurrent features while keeping the core package React-free.
+`@wthw7/effect-query-react` binds hooks to an application-owned Effect runtime
+with `createQueryHooks`. The runtime must provide `QueryService` and the
+definitions' requirements. React remains absent from the core package manifest.
+
+`useQuery` starts a fetch fiber after commit and interrupts it on key/definition
+changes or unmount. Identity is the stable definition plus its hashed key. It
+returns `data: A | undefined`, `error: Cause<E | KeyHashError> | undefined`, and
+`isPending: boolean`; a changed identity clears the displayed result immediately.
+Core winner/joiner interruption and detached background revalidation semantics
+remain unchanged. Results are fetch snapshots: mounted hooks do not subscribe
+to cache writes, invalidation, or background revalidation completion.
+
+`useMutation` returns `mutate(...args): Promise<Exit<A, E | E2>>` and `isPending`.
+Pending covers all concurrent calls through completion of `onSuccess`. Unmount
+or definition changes interrupt outstanding mutation fibers. Retained callbacks
+cannot start work after cleanup. Outcomes preserve typed errors and defects
+without unhandled promise rejections.
+
+See the [adapter README](../packages/react/README.md) for a complete example,
+runtime ownership, cancellation details, and current limitations.
 
 ## Out of Scope (v0.1)
 

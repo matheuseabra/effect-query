@@ -1,6 +1,6 @@
 {
 	"name": "@wthw7/effect-query",
-	"version": "0.1.0-alpha.0",
+	"version": "0.3.0-beta.0",
 	"description": "Typed, interruptible query caching for Effect",
 	"license": "MIT",
 	"author": "Matheus Seabra",
@@ -17,6 +17,7 @@
 		"node": ">=18"
 	},
 	"type": "module",
+	"packageManager": "pnpm@10.30.1",
 	"sideEffects": false,
 	"main": "./dist/index.js",
 	"types": "./dist/index.d.ts",
@@ -40,7 +41,7 @@
 		"test": "vitest run --coverage",
 		"test:watch": "vitest",
 		"typecheck": "tsc --noEmit",
-		"check": "pnpm typecheck && pnpm lint && pnpm test && pnpm build",
+		"check": "turbo run typecheck lint test build",
 		"prepublishOnly": "pnpm check"
 	},
 	"dependencies": {
@@ -51,6 +52,7 @@
 		"@vitest/coverage-v8": "^5.0.0",
 		"oxlint": "^1.81.0",
 		"tsx": "^4.23.13",
+		"turbo": "^2.10.12",
 		"typescript": "^7.0.2",
 		"vitest": "^5.0.0"
 	}

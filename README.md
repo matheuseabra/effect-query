@@ -1,6 +1,6 @@
 # effect-query
 
-[![version](https://img.shields.io/badge/version-0.1.0--alpha.0-blue)](https://www.npmjs.com/package/@wthw7/effect-query)
+[![version](https://img.shields.io/badge/version-0.3.0--beta.0-blue)](https://www.npmjs.com/package/@wthw7/effect-query)
 [![CI](https://github.com/matheuseabra/effect-query/actions/workflows/ci.yml/badge.svg)](https://github.com/matheuseabra/effect-query/actions/workflows/ci.yml)
 [![license](https://img.shields.io/github/license/matheuseabra/effect-query.svg)](./LICENSE)
 
@@ -24,6 +24,8 @@ parallel runtime.
 ## Features
 
 - UI-agnostic core — works in any Effect program; UI bindings stay out of core
+- Optional [React adapter](./packages/react/README.md) with runtime-bound query
+  and mutation hooks, typed outcomes, and unmount cancellation
 - Structural readonly-tuple keys shared by reads, writes, and invalidation
 - Fresh/stale caching with stale-while-revalidate and background refresh
 - Single-flight in-flight deduplication across concurrent fetches
@@ -233,8 +235,23 @@ pnpm install
 pnpm check
 ```
 
-`pnpm check` runs typecheck, lint, tests with enforced coverage thresholds,
-and build. Please keep 100% line coverage, name tests after observable
+`pnpm check` uses Turborepo to run typecheck, lint, coverage tests, and build
+for core and the React adapter. pnpm manages workspace dependencies; Turbo
+orders tasks and caches successful results in `.turbo/cache`. The adapter's
+build, typecheck, and tests wait for core's build. Shared TypeScript and lint
+configuration changes invalidate the cache, and build/coverage artifacts are
+restored on cache hits. CI retains the task cache with GitHub Actions caching;
+no remote-cache account is required.
+
+Core stays at the repository root, with its commands registered as Turbo root
+tasks in `turbo.json`; the adapter lives in `packages/react`. `pnpm build`,
+`pnpm test`, `pnpm lint`, and `pnpm typecheck` at the root still target core.
+Use `pnpm exec turbo run build` to build both packages, or
+`pnpm exec turbo run test --filter=@wthw7/effect-query-react` for adapter tests
+with core built first. `pnpm check --force` reruns all tasks without cache hits.
+Watch mode remains available through `pnpm test:watch` for core.
+
+Please keep 100% line coverage, name tests after observable
 behavior, and use concise imperative commit subjects (`feat:`, `fix:`,
 `test:`, `docs:`). For larger changes, open an issue first so the design can
 be discussed before code.
