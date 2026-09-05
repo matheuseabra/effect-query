@@ -22,7 +22,7 @@ Goal: publishable core on npm as `@wthw7/effect-query`.
 - [x] 20+ behavior tests with enforced coverage thresholds.
 - [x] CI workflow, provenance release workflow, MIT license.
 - [x] README with Why, Features, Usage, and Contributing.
-- [ ] One-time npm Trusted Publishing setup for the scoped package
+- [x] One-time npm Trusted Publishing setup for the scoped package
   (npmjs.com Settings → Trusted Publisher). Required before the first
   tag-pushed release.
 - [x] Tag `v0.1.0-alpha.0` marks the release commit (kept local: pushing it
