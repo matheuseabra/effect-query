@@ -38,15 +38,14 @@ project, badge versions resolve, and CI is green on `main`.
 
 Goal: close the gaps the alpha knowingly deferred.
 
-- [ ] Custom key hashers: `Query.make({ hash })` option, default stays
-  `JSON.stringify`. Non-serializable keys must throw a typed error, not crash.
-- [ ] Focus/reconnect triggers: UI-agnostic `Query.notifyFocus()` /
+- [x] Custom key hashers: `Query.make({ hash })` option, default stays
+  `JSON.stringify`. Non-serializable keys fail typed with `KeyHashError`.
+- [x] Focus/reconnect triggers: UI-agnostic `Query.notifyFocus()` /
   `Query.notifyReconnect()` that revalidate queries opting in via
-  `refetchOnFocus` / `refetchOnReconnect` (options exist today, runtime does
-  not).
-- [ ] `Query.prefetch(query, ...args)`: warm the cache without awaiting data.
-- [ ] `Query.cancel(key)`: cancel an in-flight request and clear its slot.
-- [ ] Document interruption semantics per operation in `docs/architecture.md`.
+  `refetchOnFocus` / `refetchOnReconnect`.
+- [x] `Query.prefetch(query, ...args)`: warm the cache without awaiting data.
+- [x] `Query.cancel(key)`: cancel an in-flight request and clear its slot.
+- [x] Document interruption semantics per operation in `docs/architecture.md`.
 
 Quality gate: new behaviors covered by tests named after observable behavior,
 no public API change without a spec entry, coverage thresholds still hold,
