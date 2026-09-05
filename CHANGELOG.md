@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.1.0-alpha.0] - 2026-09-04
 
-First public alpha, published as `@matheuseabra/effect-query`.
+First public alpha, published as `@wthw7/effect-query`.
 UI-agnostic query cache for Effect.
 
 ### Added

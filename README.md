@@ -1,6 +1,6 @@
 # effect-query
 
-[![version](https://img.shields.io/badge/version-0.1.0--alpha.0-blue)](https://www.npmjs.com/package/@matheuseabra/effect-query)
+[![version](https://img.shields.io/badge/version-0.1.0--alpha.0-blue)](https://www.npmjs.com/package/@wthw7/effect-query)
 [![CI](https://github.com/matheuseabra/effect-query/actions/workflows/ci.yml/badge.svg)](https://github.com/matheuseabra/effect-query/actions/workflows/ci.yml)
 [![license](https://img.shields.io/github/license/matheuseabra/effect-query.svg)](./LICENSE)
 
@@ -32,6 +32,9 @@ parallel runtime.
 - Interruptible fetches: cancelling the winner cancels the request, cancelling
   a joiner only cancels its own wait
 - Manual `getData` / `setData` / `invalidate` over the same key space
+- Custom key hashers with typed `KeyHashError` instead of throws
+- Fire-and-forget `prefetch` and per-key `cancel`
+- Focus/reconnect revalidation triggers for opted-in queries
 - Mutations with `QueryService`-backed `onSuccess` hooks
 - Lazy `cacheTime` garbage collection with no background timers
 - Strict TypeScript with 100% line test coverage
@@ -40,7 +43,7 @@ parallel runtime.
 
 ```ts
 import { Effect } from "effect"
-import { Query, queryLayer } from "@matheuseabra/effect-query"
+import { Query, queryLayer } from "@wthw7/effect-query"
 
 const user = Query.make({
   key: (id: string) => ["user", id] as const,
@@ -56,7 +59,7 @@ const program = Query.fetch(user, "123").pipe(
 ## Install
 
 ```sh
-bun add @matheuseabra/effect-query
+bun add @wthw7/effect-query
 ```
 
 Requires Bun (or Node 18 and later) and `effect` 3 as a runtime dependency
@@ -68,7 +71,7 @@ Requires Bun (or Node 18 and later) and `effect` 3 as a runtime dependency
 
 ```ts
 import { Effect } from "effect"
-import { Query, queryLayer } from "@matheuseabra/effect-query"
+import { Query, queryLayer } from "@wthw7/effect-query"
 
 const userQuery = Query.make({
   key: (id: string) => ["user", id] as const,
@@ -143,7 +146,7 @@ const program = Effect.gen(function* () {
 ### Mutations that refresh queries
 
 ```ts
-import { Mutation } from "@matheuseabra/effect-query"
+import { Mutation } from "@wthw7/effect-query"
 
 const updateUser = Mutation.make({
   execute: (id: string, name: string) =>
@@ -161,6 +164,45 @@ const program = Mutation.execute(updateUser, "123", "Ada").pipe(Effect.provide(q
 The `onSuccess` hook runs with access to the `QueryService`, so a mutation can
 invalidate or seed exactly the keys it affects. If the mutation fails, the
 hook does not run and the typed error propagates.
+
+### Custom key hashers
+
+```ts
+const userQuery = Query.make({
+  key: (id: number, stamp: number) => ["user", id, stamp] as const,
+  hash: (key) => `user:${key[1]}`,
+  execute: (id: number) => Effect.succeed({ id }),
+  staleTime: "1 minute"
+})
+```
+
+`fetch` hashes with `hash` when provided (`JSON.stringify` otherwise), so
+keys that differ only in volatile parts share one entry. Raw-key operations
+(`getData`, `setData`, `invalidate`, `cancel`) always use the default hasher.
+Keys that cannot be hashed fail typed with `KeyHashError`.
+
+### Prefetch, cancel, and focus triggers
+
+```ts
+const program = Effect.gen(function* () {
+  yield* Query.prefetch(postsQuery)
+  yield* Query.notifyFocus()
+  yield* Query.cancel(["posts"])
+}).pipe(Effect.provide(queryLayer()))
+```
+
+`prefetch` warms the cache without awaiting data. `cancel` interrupts the
+in-flight request for a key, if any. `notifyFocus` / `notifyReconnect`
+revalidate entries whose queries opt in via `refetchOnFocus` /
+`refetchOnReconnect`:
+
+```ts
+const postsQuery = Query.make({
+  key: () => ["posts"] as const,
+  execute: () => Effect.promise(() => fetch("/api/posts").then((res) => res.json())),
+  refetchOnFocus: true
+})
+```
 
 ### Typed errors
 

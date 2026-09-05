@@ -45,6 +45,7 @@ const program = Effect.gen(function* () {
 interface QueryOptions<A, E, R, Key extends readonly unknown[]> {
   readonly key: (...args: any[]) => Key
   readonly execute: (...args: any[]) => Effect.Effect<A, E, R>
+  readonly hash?: (key: Key) => string
   readonly staleTime?: Duration.DurationInput
   readonly cacheTime?: Duration.DurationInput
   readonly retry?: RetryPolicy
@@ -77,9 +78,16 @@ const updateUser = Mutation.make({
 ### Cache / Service
 
 - Single `QueryService` Layer that owns the in-memory cache
-- Keys are structural (readonly arrays)
+- Keys are structural (readonly arrays) hashed by `JSON.stringify` by default;
+  `Query.make({ hash })` overrides hashing for `fetch`. Raw-key operations
+  (`getData`, `setData`, `invalidate`, `cancel`) always use the default
+  hasher. Unhashable keys fail typed with `KeyHashError`, never throw.
 - Lazy garbage collection via `cacheTime`
 - `Query.invalidate(key)` / `Query.setData(key, data)` / `Query.getData(key)`
+- `Query.prefetch(query, ...args)` warms the cache without awaiting data
+- `Query.cancel(key)` interrupts the in-flight request for a key, if any
+- `Query.notifyFocus()` / `Query.notifyReconnect()` revalidate entries whose
+  queries opt in via `refetchOnFocus` / `refetchOnReconnect`
 
 ## Key Behaviors
 
