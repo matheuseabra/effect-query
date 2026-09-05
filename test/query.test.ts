@@ -1,6 +1,6 @@
 import { Effect, Exit, Fiber, Option, Schedule } from "effect"
 import { describe, expect, it } from "vitest"
-import { Mutation, Query, queryLayer, type QueryServiceShape } from "../src/index.js"
+import { Mutation, Query, queryLayer, KeyHashError, type QueryServiceShape } from "../src/index.js"
 
 const run = <A, E>(program: Effect.Effect<A, E, QueryServiceShape>) =>
 	Effect.runPromise(program.pipe(Effect.provide(queryLayer())))
@@ -322,6 +322,190 @@ describe("Query", () => {
 
 		expect(await run(program)).toBe(1)
 		expect(calls).toBe(1)
+	})
+
+	it("shares entries across key shapes with a custom hasher", async () => {
+		let calls = 0
+		const query = Query.make({
+			key: (id: number, stamp: number) => ["user", id, stamp] as const,
+			hash: (key) => `user:${key[1]}`,
+			execute: (id: number) => Effect.sync(() => ({ id, call: ++calls })),
+			staleTime: "1 minute"
+		})
+
+		const program = Effect.gen(function* () {
+			const first = yield* Query.fetch(query, 1, 100)
+			const second = yield* Query.fetch(query, 1, 200)
+			return [first, second] as const
+		})
+		const [first, second] = await run(program)
+
+		expect(first).toEqual({ id: 1, call: 1 })
+		expect(second).toEqual({ id: 1, call: 1 })
+		expect(calls).toBe(1)
+	})
+
+	it("fails typed when the default hasher cannot serialize the key", async () => {
+		const query = Query.make({
+			key: (id: bigint) => ["big", id] as const,
+			execute: (id: bigint) => Effect.succeed(id)
+		})
+
+		const error = await Effect.runPromise(
+			Effect.flip(Query.fetch(query, 1n).pipe(Effect.provide(queryLayer())))
+		)
+
+		expect(error).toBeInstanceOf(KeyHashError)
+		expect(error._tag).toBe("KeyHashError")
+	})
+
+	it("fails typed on manual operations with unserializable keys", async () => {
+		const error = await Effect.runPromise(
+			Effect.flip(Query.getData<bigint>(["big", 1n]).pipe(Effect.provide(queryLayer())))
+		)
+
+		expect(error).toBeInstanceOf(KeyHashError)
+	})
+
+	it("revalidates focus-opted queries on focus", async () => {
+		let focusedCalls = 0
+		let plainCalls = 0
+		const focused = Query.make({
+			key: () => ["focused"] as const,
+			execute: () => Effect.sync(() => ++focusedCalls),
+			refetchOnFocus: true
+		})
+		const plain = Query.make({
+			key: () => ["plain"] as const,
+			execute: () => Effect.sync(() => ++plainCalls)
+		})
+
+		const program = Effect.gen(function* () {
+			yield* Query.fetch(focused)
+			yield* Query.fetch(plain)
+			yield* Query.notifyFocus()
+			let current = yield* Query.getData<number>(["focused"])
+			for (let i = 0; i < 50 && !(Option.isSome(current) && current.value === 2); i++) {
+				yield* Effect.sleep("10 millis")
+				current = yield* Query.getData<number>(["focused"])
+			}
+			return current
+		})
+		const result = await run(program)
+
+		expect(Option.getOrThrow(result)).toBe(2)
+		expect(focusedCalls).toBe(2)
+		expect(plainCalls).toBe(1)
+	})
+
+	it("revalidates reconnect-opted queries on reconnect", async () => {
+		let calls = 0
+		const query = Query.make({
+			key: () => ["online"] as const,
+			execute: () => Effect.sync(() => ++calls),
+			refetchOnReconnect: true
+		})
+
+		const program = Effect.gen(function* () {
+			yield* Query.fetch(query)
+			yield* Query.notifyReconnect()
+			let current = yield* Query.getData<number>(["online"])
+			for (let i = 0; i < 50 && !(Option.isSome(current) && current.value === 2); i++) {
+				yield* Effect.sleep("10 millis")
+				current = yield* Query.getData<number>(["online"])
+			}
+			return current
+		})
+
+		expect(Option.getOrThrow(await run(program))).toBe(2)
+		expect(calls).toBe(2)
+	})
+
+	it("treats notifications with no matching entries as no-ops", async () => {
+		const program = Effect.gen(function* () {
+			yield* Query.notifyFocus()
+			yield* Query.notifyReconnect()
+		})
+
+		await expect(run(program)).resolves.toBeUndefined()
+	})
+
+	it("warms the cache without awaiting data", async () => {
+		let calls = 0
+		const query = Query.make({
+			key: () => ["warm"] as const,
+			execute: () => Effect.sleep("20 millis").pipe(Effect.map(() => ++calls)),
+			staleTime: "1 minute"
+		})
+
+		const program = Effect.gen(function* () {
+			yield* Query.prefetch(query)
+			const immediate = yield* Query.getData<number>(["warm"])
+			let cached = immediate
+			for (let i = 0; i < 50 && Option.isNone(cached); i++) {
+				yield* Effect.sleep("10 millis")
+				cached = yield* Query.getData<number>(["warm"])
+			}
+			const value = yield* Query.fetch(query)
+			return { immediate, cached, value }
+		})
+		const result = await run(program)
+
+		expect(Option.isNone(result.immediate)).toBe(true)
+		expect(Option.getOrThrow(result.cached)).toBe(1)
+		expect(result.value).toBe(1)
+		expect(calls).toBe(1)
+	})
+
+	it("cancelling in-flight interrupts the request and clears the slot", async () => {
+		let interrupted = false
+		const query = Query.make({
+			key: () => ["cancelable"] as const,
+			execute: () =>
+				Effect.sleep("5 seconds").pipe(
+					Effect.as("done"),
+					Effect.onInterrupt(() => Effect.sync(() => { interrupted = true }))
+				)
+		})
+
+		const program = Effect.gen(function* () {
+			const fiber = yield* Effect.fork(Query.fetch(query))
+			yield* Effect.sleep("20 millis")
+			yield* Query.cancel(["cancelable"])
+			const exit = yield* Fiber.await(fiber)
+			const cached = yield* Query.getData<string>(["cancelable"])
+			const retry = yield* Effect.fork(Query.fetch(query))
+			yield* Effect.sleep("20 millis")
+			yield* Query.cancel(["cancelable"])
+			const retryExit = yield* Fiber.await(retry)
+			return { exit, cached, retryExit }
+		})
+		const result = await run(program)
+
+		expect(Exit.isInterrupted(result.exit)).toBe(true)
+		expect(interrupted).toBe(true)
+		expect(Option.isNone(result.cached)).toBe(true)
+		expect(Exit.isInterrupted(result.retryExit)).toBe(true)
+	})
+
+	it("cancelling an idle or missing key is a no-op", async () => {
+		const query = Query.make({
+			key: () => ["idle"] as const,
+			execute: () => Effect.succeed("ok"),
+			staleTime: "1 minute"
+		})
+
+		const program = Effect.gen(function* () {
+			yield* Query.cancel(["missing"])
+			const value = yield* Query.fetch(query)
+			yield* Query.cancel(["idle"])
+			const cached = yield* Query.getData<string>(["idle"])
+			return { value, cached }
+		})
+		const result = await run(program)
+
+		expect(result.value).toBe("ok")
+		expect(Option.getOrThrow(result.cached)).toBe("ok")
 	})
 })
 

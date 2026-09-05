@@ -1,4 +1,4 @@
-import { Context, Data, Deferred, Duration, Effect, Exit, Fiber, Layer, Option, Schedule } from "effect"
+import { Context, Data, Deferred, Duration, Effect, Fiber, Layer, Option, Schedule } from "effect"
 
 export type QueryKey = readonly unknown[]
 export type QueryArgs = readonly unknown[]
@@ -105,13 +105,14 @@ const withRetry = <A, E, R>(effect: Effect.Effect<A, E, R>, policy: RetryPolicy<
 	return Effect.retry(effect, policy)
 }
 
-// Single-flight execution for one cache key. The first caller (winner) runs
-// the request in a supervised child fiber, so interrupting the winner cancels
-// the underlying request, and `cancel` can interrupt it by key. Concurrent
-// callers (joiners) await a Deferred instead, so interrupting a joiner only
-// cancels its own wait. The winner always funnels the outcome through the
-// Deferred, so joiners never hang. Failures complete the Deferred without
-// caching, letting the next fetch retry from scratch.
+// Single-flight execution for one cache key. The first caller (winner) forks
+// the request into a supervised child fiber, so interrupting the winner
+// cancels the request through supervision, and `cancel` can interrupt it by
+// key. Concurrent callers (joiners) await a Deferred instead, so interrupting
+// a joiner only cancels its own wait. The child caches successful values;
+// the winner funnels every outcome (success, failure, interruption) through
+// the Deferred in an `onExit` finalizer, so joiners never hang. Failures are
+// never cached as data, letting the next fetch retry from scratch.
 const runFresh = <A, E, R>(
 	entry: CacheEntry,
 	execute: Effect.Effect<A, E, R>,
@@ -126,33 +127,32 @@ const runFresh = <A, E, R>(
 			const deferred = yield* Deferred.make<A, E>()
 			entry.inFlight = Deferred.await(deferred)
 			const child = yield* Effect.fork(
-				restore(
-					Effect.exit(withRetry(execute, policy)).pipe(
-						Effect.flatMap((exit) =>
-							Effect.uninterruptible(
-								Effect.as(
-									Effect.zipRight(
-										Effect.sync(() => {
-											entry.inFlight = undefined
-											entry.inFlightFiber = undefined
-											if (Exit.isSuccess(exit)) {
-												entry.hasValue = true
-												entry.value = exit.value
-												entry.updatedAt = Date.now()
-											}
-										}),
-										Deferred.done(deferred, exit)
-									),
-									exit
-								)
+				Effect.interruptible(withRetry(execute, policy)).pipe(
+					Effect.tap((value) =>
+						Effect.sync(() => {
+							entry.hasValue = true
+							entry.value = value
+							entry.updatedAt = Date.now()
+						})
+					)
+				)
+			)
+			entry.inFlightFiber = child
+			return yield* restore(
+				Fiber.join(child).pipe(
+					Effect.onExit((exit) =>
+						Effect.uninterruptible(
+							Effect.zipRight(
+								Effect.sync(() => {
+									entry.inFlight = undefined
+									entry.inFlightFiber = undefined
+								}),
+								Deferred.done(deferred, exit)
 							)
 						)
 					)
 				)
 			)
-			entry.inFlightFiber = child
-			const exit = yield* restore(Fiber.join(child))
-			return yield* restore(exit)
 		})
 	)
 
@@ -241,7 +241,8 @@ const makeService = (): QueryService => {
 			}),
 		cancel: (key) =>
 			Effect.gen(function* () {
-				const fiber = entries.get(yield* hashKey(key, undefined))?.inFlightFiber
+				const hash = yield* hashKey(key, undefined)
+				const fiber = entries.get(hash)?.inFlightFiber
 				if (fiber !== undefined) yield* Effect.asVoid(Fiber.interrupt(fiber))
 			}),
 		setData: (key, value) =>
