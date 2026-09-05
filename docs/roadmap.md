@@ -22,9 +22,14 @@ Goal: publishable core on npm as `@wthw7/effect-query`.
 - [x] 20+ behavior tests with enforced coverage thresholds.
 - [x] CI workflow, provenance release workflow, MIT license.
 - [x] README with Why, Features, Usage, and Contributing.
-- [ ] One-time npm Trusted Publishing setup for the scoped package.
-- [ ] Move tag `v0.1.0-alpha.0` to the release commit and push it.
-- [ ] Verify the published tarball installs and imports in a blank project.
+- [ ] One-time npm Trusted Publishing setup for the scoped package
+  (npmjs.com Settings → Trusted Publisher). Required before the first
+  tag-pushed release.
+- [x] Tag `v0.1.0-alpha.0` marks the release commit (kept local: pushing it
+  would re-trigger publish of the existing version; tag-push automation
+  applies from the next release).
+- [x] Verified the published tarball installs and imports in a blank project
+  (npm and bun), including a fetch/mutation smoke test.
 
 Quality gate: `bun add @wthw7/effect-query@alpha` works in an empty
 project, badge versions resolve, and CI is green on `main`.
