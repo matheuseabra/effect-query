@@ -8,5 +8,6 @@ export {
 	type QueryKey,
 	type QueryOptions,
 	type QueryService as QueryServiceShape,
-	type RetryPolicy
+	type RetryPolicy,
+	KeyHashError
 } from "./query.js"
