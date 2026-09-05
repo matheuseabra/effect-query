@@ -1,6 +1,6 @@
 # effect-query
 
-[![version](https://img.shields.io/badge/version-0.1.0--alpha.0-blue)](https://www.npmjs.com/package/@matheuseabra/effect-query)
+[![version](https://img.shields.io/badge/version-0.1.0--alpha.0-blue)](https://www.npmjs.com/package/@wthw7/effect-query)
 [![CI](https://github.com/matheuseabra/effect-query/actions/workflows/ci.yml/badge.svg)](https://github.com/matheuseabra/effect-query/actions/workflows/ci.yml)
 [![license](https://img.shields.io/github/license/matheuseabra/effect-query.svg)](./LICENSE)
 
@@ -40,7 +40,7 @@ parallel runtime.
 
 ```ts
 import { Effect } from "effect"
-import { Query, queryLayer } from "@matheuseabra/effect-query"
+import { Query, queryLayer } from "@wthw7/effect-query"
 
 const user = Query.make({
   key: (id: string) => ["user", id] as const,
@@ -56,7 +56,7 @@ const program = Query.fetch(user, "123").pipe(
 ## Install
 
 ```sh
-bun add @matheuseabra/effect-query
+bun add @wthw7/effect-query
 ```
 
 Requires Bun (or Node 18 and later) and `effect` 3 as a runtime dependency
@@ -68,7 +68,7 @@ Requires Bun (or Node 18 and later) and `effect` 3 as a runtime dependency
 
 ```ts
 import { Effect } from "effect"
-import { Query, queryLayer } from "@matheuseabra/effect-query"
+import { Query, queryLayer } from "@wthw7/effect-query"
 
 const userQuery = Query.make({
   key: (id: string) => ["user", id] as const,
@@ -143,7 +143,7 @@ const program = Effect.gen(function* () {
 ### Mutations that refresh queries
 
 ```ts
-import { Mutation } from "@matheuseabra/effect-query"
+import { Mutation } from "@wthw7/effect-query"
 
 const updateUser = Mutation.make({
   execute: (id: string, name: string) =>

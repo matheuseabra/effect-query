@@ -16,7 +16,7 @@ Global release rules (apply to every phase):
 
 ## Phase 0 — Alpha release (current)
 
-Goal: publishable core on npm as `@matheuseabra/effect-query`.
+Goal: publishable core on npm as `@wthw7/effect-query`.
 
 - [x] Core `Query` / `Mutation` / `QueryService` implementation.
 - [x] 20+ behavior tests with enforced coverage thresholds.
@@ -26,7 +26,7 @@ Goal: publishable core on npm as `@matheuseabra/effect-query`.
 - [ ] Move tag `v0.1.0-alpha.0` to the release commit and push it.
 - [ ] Verify the published tarball installs and imports in a blank project.
 
-Quality gate: `bun add @matheuseabra/effect-query@alpha` works in an empty
+Quality gate: `bun add @wthw7/effect-query@alpha` works in an empty
 project, badge versions resolve, and CI is green on `main`.
 
 ## Phase 1 — Core completeness (beta)
